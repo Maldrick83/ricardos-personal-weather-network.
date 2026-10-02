@@ -1,0 +1,21 @@
+div class="station">
+    <h2>KTXSANBE25</h2>
+        <p>Weather Underground Station</p>
+            <a href="https://www.wunderground.com/dashboard/pws/KTXSANBE25" target="_blank">
+                  View Weather Station
+                      </a>
+                        </div>
+
+                          <div class="station">
+                              <h2>WS2902C</h2>
+                                  <p>Ambient Weather Station</p>
+                                    </div>
+
+                                    </div>
+
+                                    <footer>
+                                      Ricardo's Personal Weather Network
+                                      </footer>
+
+                                      </body>
+                                      </html>
