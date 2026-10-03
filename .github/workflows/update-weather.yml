@@ -26,7 +26,6 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-
     steps:
       - name: Get website files
         uses: actions/checkout@v4
@@ -40,4 +39,81 @@ jobs:
         run: |
           mkdir -p _site
           cp index.html _site/index.html
-          python3 -
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+          import urllib.parse
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          key = os.environ.get("WU_API_KEY", "").strip()
+          if not key:
+              raise SystemExit("WU_API_KEY secret is missing.")
+
+          stations = [
+              "KTXPASAD108", "KTXPASAD118", "KTXPASAD120",
+              "KTXJARRE92", "KTXLAGOV37", "KTXPASAD177",
+              "KTXPASAD246", "KTXSANBE19", "KTXSANBE25"
+          ]
+          results = []
+          successes = 0
+
+          for station in stations:
+              item = {"id": station, "status": "unavailable"}
+              query = urllib.parse.urlencode({
+                  "stationId": station,
+                  "format": "json",
+                  "units": "e",
+                  "numericPrecision": "decimal",
+                  "apiKey": key
+              })
+              url = "https://api.weather.com/v2/pws/observations/current?" + query
+              try:
+                  with urllib.request.urlopen(url, timeout=25) as response:
+                      payload = json.load(response)
+                  observation = payload["observations"][0]
+                  if observation.get("stationID") != station:
+                      raise ValueError("Station mismatch")
+                  imperial = observation.get("imperial") or {}
+                  item.update({
+                      "status": "ok",
+                      "observedAt": observation.get("obsTimeUtc"),
+                      "temperature": imperial.get("temp"),
+                      "humidity": observation.get("humidity"),
+                      "dewPoint": imperial.get("dewpt"),
+                      "pressure": imperial.get("pressure"),
+                      "windSpeed": imperial.get("windSpeed"),
+                      "windDirection": observation.get("winddir"),
+                      "windGust": imperial.get("windGust"),
+                      "rainToday": imperial.get("precipTotal"),
+                      "heatIndex": imperial.get("heatIndex"),
+                      "windChill": imperial.get("windChill")
+                  })
+                  successes += 1
+                  print(station + ": reading received")
+              except Exception:
+                  print(station + ": reading unavailable")
+              results.append(item)
+
+          if successes == 0:
+              raise SystemExit("No readings received. Check API key and station access.")
+
+          data = {
+              "updatedAt": datetime.now(timezone.utc).isoformat(),
+              "stations": results
+          }
+          Path("_site/weather.json").write_text(
+              json.dumps(data, indent=2, allow_nan=False),
+              encoding="utf-8"
+          )
+          PY
+
+      - name: Upload website
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Publish website
+        id: deployment
+        uses: actions/deploy-pages@v4
