@@ -1,81 +1,145 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-      <title>Ricardo's Personal Weather Network</title>
-
-        <style>
-            body {
-                  margin: 0;
-                        font-family: Arial, sans-serif;
-                              background: #eef5f9;
-                                    color: #1f2937;
-                                        }
-
-                                            header {
-                                                  background: #1769aa;
-                                                        color: white;
-                                                              text-align: center;
-                                                                    padding: 28px 15px;
-                                                                        }
-
-                                                                            header h1 {
-                                                                                  margin: 0;
-                                                                                        font-size: 30px;
-                                                                                            }
-
-                                                                                                header p {
-                                                                                                      margin-top: 8px;
-                                                                                                          }
-
-                                                                                                              .container {
-                                                                                                                    max-width: 900px;
-                                                                                                                          margin: auto;
-                                                                                                                                padding: 20px;
-                                                                                                                                    }
-
-                                                                                                                                        .station {
-                                                                                                                                              background: white;
-                                                                                                                                                    margin-bottom: 15px;
-                                                                                                                                                          padding: 18px;
-                                                                                                                                                                border-radius: 12px;
-                                                                                                                                                                      box-shadow: 0 2px 8px rgba(0,0,0,0.10);
-                                                                                                                                                                          }
-
-                                                                                                                                                                              .station h2 {
-                                                                                                                                                                                    margin-top: 0;
-                                                                                                                                                                                          color: #1769aa;
-                                                                                                                                                                                              }
-
-                                                                                                                                                                                                  .station a {
-                                                                                                                                                                                                        display: inline-block;
-                                                                                                                                                                                                              background: #1769aa;
-                                                                                                                                                                                                                    color: white;
-                                                                                                                                                                                                                          text-decoration: none;
-                                                                                                                                                                                                                                padding: 10px 16px;
-                                                                                                                                                                                                                                      border-radius: 7px;
-                                                                                                                                                                                                                                            margin-top: 5px;
-                                                                                                                                                                                                                                                }
-
-                                                                                                                                                                                                                                                    footer {
-                                                                                                                                                                                                                                                          text-align: center;
-                                                                                                                                                                                                                                                                padding: 25px;
-                                                                                                                                                                                                                                                                      color: #555;
-                                                                                                                                                                                                                                                                          }
-                                                                                                                                                                                                                                                                            </style>
-                                                                                                                                                                                                                                                                            </head>
-
-                                                                                                                                                                                                                                                                            <body>
-
-                                                                                                                                                                                                                                                                            <header>
-                                                                                                                                                                                                                                                                              <h1>Ricardo's Personal Weather Network</h1>
-                                                                                                                                                                                                                                                                                <p>My Personal Weather Station Network</p>
-                                                                                                                                                                                                                                                                                </header>
-
-                                                                                                                                                                                                                                                                                <div class="container">
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ricardo's Personal Weather Network</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; background: #eef5fa; color: #173247; }
+header { padding: 28px 18px; background: #123c5b; color: white; text-align: center; }
+h1 { margin: 0 0 10px; font-size: 28px; }
+main { max-width: 1100px; margin: auto; padding: 18px; }
+.toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 18px; }
+button { padding: 10px 18px; border: 0; border-radius: 8px; background: #176a9c; color: white; cursor: pointer; }
+button:disabled { opacity: .6; }
+#stations { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 16px; }
+.card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 3px 12px #17324715; }
+h2 { font-size: 19px; margin: 0 0 12px; }
+.temperature { font-size: 44px; font-weight: bold; margin: 12px 0; }
+dl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+dt { font-size: 13px; color: #567; }
+dd { margin: 4px 0 0; font-size: 19px; font-weight: bold; }
+.status { font-size: 14px; color: #567; }
+.warning { color: #985200; }
+a { color: #176a9c; }
+footer { text-align: center; padding: 24px; color: #567; }
+</style>
+</head>
+<body>
+<header>
+<h1>Ricardo's Personal Weather Network</h1>
+<p>Latest personal weather station readings</p>
+</header>
+<main>
+<div class="toolbar">
+<button id="refresh" type="button">Refresh readings</button>
+<span id="message" role="status">Loading readings…</span>
+</div>
+<p>Station data updates about every 15 minutes. Updates may be delayed.</p>
+<div id="stations"></div>
+<section class="card" style="margin-top:16px">
+<h2>WS2902C — Ambient Weather</h2>
+<p>Live connection pending.</p>
+</section>
+</main>
+<footer>Ricardo's Personal Weather Network</footer>
+<script>
+const ids = [
+  "KTXPASAD108", "KTXPASAD118", "KTXPASAD120",
+  "KTXJARRE92", "KTXLAGOV37", "KTXPASAD177",
+  "KTXPASAD246", "KTXSANBE19", "KTXSANBE25"
+];
+const container = document.getElementById("stations");
+const message = document.getElementById("message");
+const refresh = document.getElementById("refresh");
+const number = (v, unit, digits = 1) =>
+  typeof v === "number" && Number.isFinite(v) ? v.toFixed(digits) + unit : "—";
+function render(data) {
+  container.replaceChildren();
+  for (const id of ids) {
+    const s = data.stations.find(item => item.id === id);
+    const card = document.createElement("article");
+    card.className = "card";
+    const title = document.createElement("h2");
+    title.textContent = id;
+    card.append(title);
+    const status = document.createElement("p");
+    status.className = "status";
+    const time = s && s.observedAt ? Date.parse(s.observedAt) : NaN;
+    const available = s && s.status === "ok";
+    const stale = !Number.isFinite(time) || Date.now() - time > 45 * 60000;
+    status.textContent = available
+      ? (stale ? "Older reading • " : "Observed • ") +
+        (Number.isFinite(time) ? new Date(time).toLocaleString() : "Time unavailable")
+      : "Reading unavailable";
+    if (available && stale) status.classList.add("warning");
+    card.append(status);
+    if (available) {
+      const temp = document.createElement("div");
+      temp.className = "temperature";
+      temp.textContent = number(s.temperature, "°F");
+      card.append(temp);
+      const metrics = [
+        ["Humidity", number(s.humidity, "%", 0)],
+        ["Dew point", number(s.dewPoint, "°F")],
+        ["Pressure", number(s.pressure, " inHg", 2)],
+        ["Wind", number(s.windSpeed, " mph")],
+        ["Wind direction", number(s.windDirection, "°", 0)],
+        ["Wind gust", number(s.windGust, " mph")],
+        ["Rain today", number(s.rainToday, " in", 2)],
+        ["Heat index", number(s.heatIndex, "°F")],
+        ["Wind chill", number(s.windChill, "°F")]
+      ];
+      const list = document.createElement("dl");
+      for (const [label, value] of metrics) {
+        const group = document.createElement("div");
+        const dt = document.createElement("dt");
+        const dd = document.createElement("dd");
+        dt.textContent = label;
+        dd.textContent = value;
+        group.append(dt, dd);
+        list.append(group);
+      }
+      card.append(list);
+    }
+    const link = document.createElement("a");
+    link.href = "https://www.wunderground.com/dashboard/pws/" + id;
+    link.textContent = "View Weather Station";
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    card.append(link);
+    container.append(card);
+  }
+}
+async function load() {
+  refresh.disabled = true;
+  message.textContent = "Checking for readings…";
+  try {
+    const response = await fetch("./weather.json?t=" + Date.now(), { cache: "no-store" });
+    if (!response.ok) throw new Error("Data unavailable");
+    const data = await response.json();
+    if (!Array.isArray(data.stations)) throw new Error("Invalid data");
+    render(data);
+    const updated = Date.parse(data.updatedAt);
+    const delayed = !Number.isFinite(updated) || Date.now() - updated > 45 * 60000;
+    message.textContent = (delayed ? "Updates delayed. " : "") +
+      "Data fetched: " + (Number.isFinite(updated) ? new Date(updated).toLocaleString() : "unknown");
+  } catch {
+    message.textContent = "Could not refresh readings. Try again shortly.";
+    if (!container.children.length) render({ stations: [] });
+  } finally {
+    refresh.disabled = false;
+  }
+}
+refresh.addEventListener("click", load);
+load();
+setInterval(load, 60000);
+</script>
+</body>
+</html>
+Don’t commit yet. Send a screenshot of the bottom after pasting; it should end with </body> and </html>.
                                                                                                                                                                                                                                                                                   <div class="station">
                                                                                                                                                                                                                                                                                       <h2>KTXPASAD108</h2>
                                                                                                                                                                                                                                                                                           <p>Weather Underground Station</p>
