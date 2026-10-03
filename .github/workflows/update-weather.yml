@@ -1,0 +1,43 @@
+name: Update weather
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+  push:
+    branches: [main]
+    paths:
+      - index.html
+      - .github/workflows/update-weather.yml
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: weather-pages
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Get website files
+        uses: actions/checkout@v4
+
+      - name: Prepare Pages
+        uses: actions/configure-pages@v5
+
+      - name: Fetch weather readings
+        env:
+          WU_API_KEY: ${{ secrets.WU_API_KEY }}
+        run: |
+          mkdir -p _site
+          cp index.html _site/index.html
+          python3 -
